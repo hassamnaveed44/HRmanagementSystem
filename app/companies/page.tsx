@@ -51,6 +51,10 @@ export default function CompaniesPage() {
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [detailCompany, setDetailCompany] = useState<Company | null>(null);
 
+  // Custom Delete Confirmation States
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<boolean>(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
   // Form Fields State
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -167,15 +171,21 @@ export default function CompaniesPage() {
     }
   };
 
-  // Delete a company, subject to dependency restriction checks
-  const handleDeleteCompany = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this company?")) return;
+  // Trigger custom confirmation modal instead of browser alert
+  const handleDeleteCompany = (id: number) => {
+    setDeleteTargetId(id);
+    setIsDeleteConfirmOpen(true);
+  };
 
+  // Perform API deletion after user clicks Confirm on the modal
+  const confirmDeleteAction = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleteConfirmOpen(false);
     setError(null);
     setSuccess(null);
 
     try {
-      const res = await fetch(`/api/companies/${id}`, {
+      const res = await fetch(`/api/companies/${deleteTargetId}`, {
         method: "DELETE",
       });
 
@@ -189,6 +199,8 @@ export default function CompaniesPage() {
       refreshCompanies(); // Update global context dropdown
     } catch (err: any) {
       setError(err.message || "Failed to delete company");
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -557,6 +569,49 @@ export default function CompaniesPage() {
             </div>
           </div>
         )}
+        {/* 3. CUSTOM MODAL: DELETE CONFIRMATION POPUP */}
+        {isDeleteConfirmOpen && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-100 overflow-hidden animate-zoom-in">
+              <div className="p-6 text-center space-y-4">
+                {/* Warning Alert Icon */}
+                <div className="w-12 h-12 bg-red-50 text-red-650 rounded-full flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6 text-red-650" />
+                </div>
+                
+                {/* Text Messages */}
+                <div className="space-y-1">
+                  <h3 className="font-bold text-slate-800 text-lg">Confirm Delete</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Are you sure you want to delete this company? This action is permanent and cannot be undone.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Footer CTA Controls */}
+              <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setDeleteTargetId(null);
+                  }}
+                  className="border border-slate-200 bg-white text-slate-650 hover:bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteAction}
+                  className="bg-red-650 hover:bg-red-750 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </DashboardShell>
   );

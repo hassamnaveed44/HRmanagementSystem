@@ -46,7 +46,7 @@ export default function DashboardHome() {
   useEffect(() => {
     const fetchStats = async () => {
       if (contextLoading) return;
-      
+
       try {
         setLoading(true);
 
@@ -120,7 +120,7 @@ export default function DashboardHome() {
           {/* Welcome Banner Card */}
           <div className="bg-gradient-to-r from-cyan-800 to-teal-900 rounded-2xl p-8 text-white shadow-md relative overflow-hidden">
             <div className="relative z-10 max-w-xl">
-              <h2 className="text-3xl font-extrabold mb-2">Welcome to Breez HR Portal</h2>
+              <h2 className="text-3xl font-extrabold mb-2">Welcome to anzee HR Portal</h2>
               <p className="text-cyan-100 text-sm leading-relaxed mb-6">
                 Manage organization structures, employee profiles, payroll processing, and cross-functional team project assignments under one centralized dashboard.
               </p>

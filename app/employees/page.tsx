@@ -106,6 +106,10 @@ export default function EmployeesPage() {
   const [profileDetail, setProfileDetail] = useState<DetailedProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
 
+  // Custom Delete Confirmation States
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<boolean>(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
   // Form Field States (Split into Personal, Company, and Manager sections)
   const [employeeCode, setEmployeeCode] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -321,15 +325,21 @@ export default function EmployeesPage() {
     }
   };
 
-  // Delete employee record
-  const handleDeleteEmployee = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this employee?")) return;
+  // Trigger custom confirmation modal instead of browser alert
+  const handleDeleteEmployee = (id: number) => {
+    setDeleteTargetId(id);
+    setIsDeleteConfirmOpen(true);
+  };
 
+  // Perform API deletion after user clicks Confirm on the modal
+  const confirmDeleteAction = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleteConfirmOpen(false);
     setError(null);
     setSuccess(null);
 
     try {
-      const res = await fetch(`/api/employees/${id}`, {
+      const res = await fetch(`/api/employees/${deleteTargetId}`, {
         method: "DELETE",
       });
 
@@ -342,6 +352,8 @@ export default function EmployeesPage() {
       fetchEmployees();
     } catch (err: any) {
       setError(err.message || "Failed to delete employee");
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -461,7 +473,7 @@ export default function EmployeesPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-450 text-[10px] font-extrabold uppercase tracking-wider">
+                        <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 text-[10px] font-extrabold uppercase tracking-wider">
                           <th className="px-6 py-4">Employee ID</th>
                           <th className="px-6 py-4">Name</th>
                           <th className="px-6 py-4">Email</th>
@@ -476,7 +488,7 @@ export default function EmployeesPage() {
                         {employees.map((emp) => (
                           <tr key={emp.id} className="hover:bg-slate-50/40 transition-colors">
                             {/* Employee ID (Prefix with #MZ-00X) */}
-                            <td className="px-6 py-4 text-slate-450 font-semibold font-mono">
+                            <td className="px-6 py-4 text-slate-500 font-semibold font-mono">
                               #MZ-{String(emp.id).padStart(3, "0")}
                             </td>
 
@@ -998,6 +1010,49 @@ export default function EmployeesPage() {
                 </button>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* 3. CUSTOM MODAL: DELETE CONFIRMATION POPUP */}
+        {isDeleteConfirmOpen && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-100 overflow-hidden animate-zoom-in">
+              <div className="p-6 text-center space-y-4">
+                {/* Warning Alert Icon */}
+                <div className="w-12 h-12 bg-red-50 text-red-650 rounded-full flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                
+                {/* Text Messages */}
+                <div className="space-y-1">
+                  <h3 className="font-bold text-slate-800 text-lg">Confirm Delete</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Are you sure you want to delete this employee? This action is permanent and cannot be undone.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Footer CTA Controls */}
+              <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setDeleteTargetId(null);
+                  }}
+                  className="border border-slate-200 bg-white text-slate-650 hover:bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteAction}
+                  className="bg-red-650 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                >
+                  Confirm Delete
+                </button>
+              </div>
             </div>
           </div>
         )}
