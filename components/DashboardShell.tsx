@@ -193,56 +193,32 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
           <span>Projects</span>
         </Link>
 
-        {/* Dummy items */}
-        <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
-          <Clock className="w-4.5 h-4.5" />
-          <span>Time Sheet</span>
-        </button>
-
-        <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
-          <MessageSquare className="w-4.5 h-4.5" />
-          <span>Messages</span>
-        </button>
-
-        <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
-          <User className="w-4.5 h-4.5" />
-          <span>Users</span>
-        </button>
-
-        <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
-          <ShieldAlert className="w-4.5 h-4.5" />
-          <span>Role</span>
-        </button>
-
-        {/* Section Divider */}
-        <div className="border-t border-white/10 my-3 mx-4"></div>
-
-        {/* Designations Link */}
+        {/* Role (pointing to designations) */}
         <Link
           href="/designations"
           onClick={() => setIsMobileOpen(false)}
-          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-xs ${
+          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
             isDesignationsActive
-              ? "bg-white/15 text-white font-bold"
-              : "text-cyan-50/80 hover:bg-[#0092B6]/30 hover:text-white"
+              ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+              : "text-white hover:bg-[#0092B6]/40"
           }`}
         >
-          <Settings className="w-4 h-4" />
-          <span>Manage Designations</span>
+          <ShieldAlert className="w-4.5 h-4.5" />
+          <span>Role</span>
         </Link>
 
-        {/* Companies Link */}
+        {/* Companies */}
         <Link
           href="/companies"
           onClick={() => setIsMobileOpen(false)}
-          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-xs ${
+          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
             isCompaniesActive
-              ? "bg-white/15 text-white font-bold"
-              : "text-cyan-50/80 hover:bg-[#0092B6]/30 hover:text-white"
+              ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+              : "text-white hover:bg-[#0092B6]/40"
           }`}
         >
-          <Building className="w-4 h-4" />
-          <span>Manage Companies</span>
+          <Building className="w-4.5 h-4.5" />
+          <span>Companies</span>
         </Link>
 
       </nav>
