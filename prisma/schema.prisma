@@ -1,13 +1,172 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// -------------------------------------------------------------
+// ENUMS
+// -------------------------------------------------------------
+
+/// Employee status options
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+/// Salary payment status options
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+/// Project lifecycle status options
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+// -------------------------------------------------------------
+// MODELS
+// -------------------------------------------------------------
+
+/// Company Model
+/// HR users manage multiple companies independently
+model Company {
+  id        Int      @id @default(autoincrement()) // Primary Key
+  name      String                                // Company Name
+  email     String                                // Contact Email
+  phone     String                                // Contact Phone Number
+  address   String?                               // Physical Address (Optional)
+  website   String?                               // Company Website (Optional)
+  status    String   @default("ACTIVE")           // Active/Inactive company status
+  createdAt DateTime @default(now())               // Audit timestamp: Creation
+  updatedAt DateTime @updatedAt                   // Audit timestamp: Last update
+
+  // Relations: One company has many designations, employees, salaries, and projects
+  designations Designation[]
+  employees    Employee[]
+  projects     Project[]
+  salaries     Salary[]
+}
+
+/// Designation Model
+/// Specific job roles within a company (scoped to the company)
+model Designation {
+  id          Int      @id @default(autoincrement()) // Primary Key
+  title       String                                // Job Title (e.g. Senior Developer)
+  description String?                               // Job description details (Optional)
+  companyId   Int                                   // Foreign Key to Company
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())               // Audit timestamp: Creation
+  updatedAt   DateTime @updatedAt                   // Audit timestamp: Last update
+
+  // Relations: One designation can be assigned to multiple employees
+  employees Employee[]
+}
+
+/// Employee Model
+/// Personal and organizational data of employees
+model Employee {
+  id            Int            @id @default(autoincrement()) // Primary Key
+  employeeCode  String         @unique                      // Unique identifier code (e.g. EMP001)
+  firstName     String                                      // Employee first name
+  lastName      String                                      // Employee last name
+  email         String         @unique                      // Unique official email address
+  phone         String                                      // Contact phone number
+  address       String                                      // Residential address
+  joiningDate   DateTime                                    // Date of joining
+  status        EmployeeStatus @default(ACTIVE)             // Employment status
+  
+  companyId     Int                                         // Foreign Key to Company
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  
+  designationId Int                                         // Foreign Key to Designation
+  designation   Designation    @relation(fields: [designationId], references: [id], onDelete: Restrict)
+  
+  // Self-referencing relationship: Manager and subordinates
+  managerId     Int?                                        // Foreign Key to self (Manager Employee ID)
+  manager       Employee?      @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: Restrict)
+  subordinates  Employee[]     @relation("EmployeeManager")
+  
+  createdAt     DateTime       @default(now())              // Audit timestamp: Creation
+  updatedAt     DateTime       @updatedAt                   // Audit timestamp: Last update
+
+  // Relations: An employee has many salary logs and projects
+  salaries     Salary[]
+  projects     ProjectEmployee[]
+}
+
+/// Salary Model
+/// Monthly salary history records for employees
+model Salary {
+  id            Int           @id @default(autoincrement()) // Primary Key
+  employeeId    Int                                         // Foreign Key to Employee
+  employee      Employee      @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  
+  companyId     Int                                         // Foreign Key to Company (for scoping)
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  
+  month         Int                                         // Month number (1 to 12)
+  year          Int                                         // Year number (e.g. 2026)
+  basicSalary   Float                                       // Base pay amount
+  allowances    Float                                       // Allowances pay amount
+  bonus         Float                                       // Bonus reward pay amount
+  deductions    Float                                       // Deductions/Tax amount
+  netSalary     Float                                       // Calculated: basic + allowances + bonus - deductions
+  paymentStatus PaymentStatus @default(PENDING)             // Payment payout status
+  paidAt        DateTime?                                   // Date when payment was completed
+  createdAt     DateTime      @default(now())              // Audit timestamp: Creation
+  updatedAt     DateTime      @updatedAt                   // Audit timestamp: Last update
+
+  // Composite constraint: Only one salary record can exist per employee per month/year
+  @@unique([employeeId, month, year])
+}
+
+/// Project Model
+/// Scoped company projects
+model Project {
+  id          Int           @id @default(autoincrement()) // Primary Key
+  name        String                                      // Project Name
+  description String?                                     // Project description (Optional)
+  startDate   DateTime                                    // Project start date
+  endDate     DateTime?                                   // Project target end date (Optional)
+  status      ProjectStatus @default(PLANNED)             // Project progress status
+  
+  companyId   Int                                         // Foreign Key to Company
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  
+  createdAt   DateTime      @default(now())              // Audit timestamp: Creation
+  updatedAt   DateTime      @updatedAt                   // Audit timestamp: Last update
+
+  // Relations: A project has many assigned employees
+  employees   ProjectEmployee[]
+}
+
+/// ProjectEmployee Model
+/// Junction table representing many-to-many relation between Employees and Projects
+model ProjectEmployee {
+  id         Int      @id @default(autoincrement()) // Primary Key
+  projectId  Int                                    // Foreign Key to Project
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  employeeId Int                                    // Foreign Key to Employee
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  role       String                                 // Employee's role on this project (e.g. Frontend Lead)
+  assignedAt DateTime @default(now())               // Date when the employee was assigned to this project
+
+  // Composite constraint: The same employee cannot be assigned to the same project twice
+  @@unique([projectId, employeeId])
 }
