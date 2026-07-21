@@ -18,40 +18,15 @@ import {
   Globe,
   Grid,
   Mail,
-  HelpCircle,
   Clock,
   MessageSquare,
   ShieldAlert,
   User,
   LogOut,
+  ArrowRight,
+  ArrowRightLeft,
+  Settings,
 } from "lucide-react";
-
-interface SidebarLinkProps {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  indent?: boolean;
-}
-
-// Sidebar individual navigation item
-const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon, label, active, indent }) => {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center justify-between px-6 py-3 transition-all duration-200 ${
-        indent ? "pl-14 text-cyan-50 hover:bg-[#0089ac] text-xs" : "text-white hover:bg-[#0089ac] text-sm"
-      } ${active && !indent ? "bg-[#0089ac] border-l-4 border-white pl-5 font-semibold" : ""} ${
-        active && indent ? "bg-[#0089ac] font-semibold text-white" : ""
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        {icon}
-        <span>{label}</span>
-      </div>
-    </Link>
-  );
-};
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -61,10 +36,11 @@ interface DashboardShellProps {
 
 /**
  * DashboardShell Component
- * Implements the exact sidebar design from the screenshot:
- * - w-64 width, #00A2CA background
- * - Waving hand hello greeting top bar
- * - Search Here... pill input, English dropdown, envelope, bell, Jhon Smith avatar
+ * Implements the exact layout from the screenshots:
+ * - w-64 width, #00A2CA background sidebar
+ * - Active parent item (e.g. Employee) has white background and cyan text
+ * - Sub-items: Employee, Documents, Assets with custom horizontal arrow icon
+ * - Removes the active scoped banner line completely as requested
  */
 export const DashboardShell: React.FC<DashboardShellProps> = ({
   children,
@@ -72,10 +48,18 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
   breadcrumbs,
 }) => {
   const pathname = usePathname();
-  const { companies, selectedCompanyId, setSelectedCompanyId, selectedCompany, loading } = useCompany();
+  const { companies, selectedCompanyId, setSelectedCompanyId, selectedCompany } = useCompany();
   const [employeeOpen, setEmployeeOpen] = useState(true);
   const [salaryOpen, setSalaryOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  // Check which sections are active
+  const isDashboardActive = pathname === "/";
+  const isEmployeeSectionActive = pathname.startsWith("/employees");
+  const isSalarySectionActive = pathname.startsWith("/salaries");
+  const isProjectsActive = pathname === "/projects";
+  const isDesignationsActive = pathname === "/designations";
+  const isCompaniesActive = pathname === "/companies";
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
@@ -83,67 +67,81 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
       {/* 1. SIDEBAR: Styled matching screenshot (width 256, bg #00A2CA) */}
       <aside className="w-64 flex-shrink-0 flex flex-col bg-[#00A2CA] text-white shadow-lg h-full select-none z-15">
         
-        {/* Brand/Logo: 'anez' matching screens */}
-        <div className="h-16 flex items-center gap-2 px-6 bg-[#0092B6]">
-          {/* Logo waveform icon */}
-          <div className="flex items-center gap-1.5">
+        {/* Brand/Logo: 'anez' matching screen */}
+        <div className="h-16 flex items-center gap-2 px-6 bg-[#0092B6] border-b border-white/5">
+          <div className="flex items-center gap-2">
+            {/* Logo shape */}
             <svg className="w-6 h-6 text-white fill-current" viewBox="0 0 24 24">
               <path d="M4 6h2v12H4zm4-2h2v16H8zm4 5h2v10h-2zm4-3h2v14h-2zm4 6h2v8h-2z" />
             </svg>
-            <span className="font-extrabold text-2xl tracking-tight">anez</span>
+            <span className="font-extrabold text-2xl tracking-tight text-white">anez</span>
           </div>
         </div>
 
         {/* Sidebar Navigation */}
-        <nav className="flex-grow py-4 overflow-y-auto space-y-0.5">
+        <nav className="flex-grow py-4 overflow-y-auto space-y-1">
           
           {/* Dashboard Link */}
-          <SidebarLink
+          <Link
             href="/"
-            icon={<LayoutDashboard className="w-4 h-4" />}
-            label="Dashboard"
-            active={pathname === "/"}
-          />
+            className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
+              isDashboardActive
+                ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                : "text-white hover:bg-[#0092B6]/40"
+            }`}
+          >
+            <LayoutDashboard className="w-4.5 h-4.5" />
+            <span>Dashboard</span>
+          </Link>
 
-          {/* Employee Link (Expandable) */}
+          {/* Employee Link (Active parent has white background & cyan text) */}
           <div>
             <button
               onClick={() => setEmployeeOpen(!employeeOpen)}
-              className={`w-full flex items-center justify-between px-6 py-3 transition-colors text-white hover:bg-[#0089ac] text-sm ${
-                pathname.startsWith("/employees") || pathname.startsWith("/designations") ? "bg-[#0089ac]" : ""
+              className={`w-full flex items-center justify-between px-6 py-3.5 transition-colors text-sm ${
+                isEmployeeSectionActive
+                  ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                  : "text-white hover:bg-[#0092B6]/40"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Users className="w-4 h-4" />
+                <Users className="w-4.5 h-4.5" />
                 <span>Employee</span>
               </div>
-              {employeeOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {employeeOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
 
-            {/* Submenu links */}
+            {/* Submenu links: Employee, Documents, Assets with horizontal arrows */}
             {employeeOpen && (
-              <div className="bg-[#0098be] py-1">
-                <SidebarLink
+              <div className="bg-[#0092B6]/25 py-1.5 space-y-1">
+                {/* Employee List Link */}
+                <Link
                   href="/employees"
-                  icon={null}
-                  label="Employee"
-                  active={pathname === "/employees"}
-                  indent
-                />
-                <SidebarLink
-                  href="/designations"
-                  icon={null}
-                  label="Designation"
-                  active={pathname === "/designations"}
-                  indent
-                />
-                <SidebarLink
-                  href="/companies"
-                  icon={null}
-                  label="Companies"
-                  active={pathname === "/companies"}
-                  indent
-                />
+                  className={`flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs transition-colors ${
+                    pathname === "/employees"
+                      ? "text-white font-bold"
+                      : "text-cyan-50/80 hover:text-white"
+                  }`}
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Employee</span>
+                </Link>
+
+                {/* Dummy Documents Link */}
+                <button
+                  className="w-full flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs text-cyan-50/80 hover:text-white transition-colors text-left"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Documents</span>
+                </button>
+
+                {/* Dummy Assets Link */}
+                <button
+                  className="w-full flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs text-cyan-50/80 hover:text-white transition-colors text-left"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Assets</span>
+                </button>
               </div>
             )}
           </div>
@@ -152,69 +150,112 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
           <div>
             <button
               onClick={() => setSalaryOpen(!salaryOpen)}
-              className={`w-full flex items-center justify-between px-6 py-3 transition-colors text-white hover:bg-[#0089ac] text-sm ${
-                pathname.startsWith("/salaries") ? "bg-[#0089ac]" : ""
+              className={`w-full flex items-center justify-between px-6 py-3.5 transition-colors text-sm ${
+                isSalarySectionActive
+                  ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                  : "text-white hover:bg-[#0092B6]/40"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Banknote className="w-4 h-4" />
+                <Banknote className="w-4.5 h-4.5" />
                 <span>Salary</span>
               </div>
-              {salaryOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {salaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {salaryOpen && (
-              <div className="bg-[#0098be] py-1">
-                <SidebarLink
+              <div className="bg-[#0092B6]/25 py-1.5 space-y-1">
+                <Link
                   href="/salaries"
-                  icon={null}
-                  label="Salary Sheets"
-                  active={pathname === "/salaries"}
-                  indent
-                />
+                  className={`flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs transition-colors ${
+                    pathname === "/salaries"
+                      ? "text-white font-bold"
+                      : "text-cyan-50/80 hover:text-white"
+                  }`}
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Salary Sheets</span>
+                </Link>
               </div>
             )}
           </div>
 
           {/* Projects Link */}
-          <SidebarLink
+          <Link
             href="/projects"
-            icon={<FolderKanban className="w-4 h-4" />}
-            label="Projects"
-            active={pathname === "/projects"}
-          />
+            className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
+              isProjectsActive
+                ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                : "text-white hover:bg-[#0092B6]/40"
+            }`}
+          >
+            <FolderKanban className="w-4.5 h-4.5" />
+            <span>Projects</span>
+          </Link>
 
-          {/* Dummy links matching the screenshot design */}
-          <button className="w-full flex items-center gap-3 px-6 py-3 text-cyan-50/80 hover:bg-[#0089ac] hover:text-white text-sm transition-colors">
-            <Clock className="w-4 h-4" />
+          {/* Time Sheet */}
+          <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
+            <Clock className="w-4.5 h-4.5" />
             <span>Time Sheet</span>
           </button>
 
-          <button className="w-full flex items-center gap-3 px-6 py-3 text-cyan-50/80 hover:bg-[#0089ac] hover:text-white text-sm transition-colors">
-            <MessageSquare className="w-4 h-4" />
+          {/* Messages */}
+          <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
+            <MessageSquare className="w-4.5 h-4.5" />
             <span>Messages</span>
           </button>
 
-          <button className="w-full flex items-center gap-3 px-6 py-3 text-cyan-50/80 hover:bg-[#0089ac] hover:text-white text-sm transition-colors">
-            <User className="w-4 h-4" />
+          {/* Users */}
+          <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
+            <User className="w-4.5 h-4.5" />
             <span>Users</span>
           </button>
 
-          <button className="w-full flex items-center gap-3 px-6 py-3 text-cyan-50/80 hover:bg-[#0089ac] hover:text-white text-sm transition-colors">
-            <ShieldAlert className="w-4 h-4" />
+          {/* Role */}
+          <button className="w-full flex items-center gap-3 px-6 py-3.5 text-cyan-50/80 hover:bg-[#0092B6]/40 hover:text-white text-sm transition-colors text-left">
+            <ShieldAlert className="w-4.5 h-4.5" />
             <span>Role</span>
           </button>
+
+          {/* SECTION DIVIDER */}
+          <div className="border-t border-white/10 my-3 mx-4"></div>
+
+          {/* Designations Link */}
+          <Link
+            href="/designations"
+            className={`flex items-center gap-3 px-6 py-3 transition-colors text-xs ${
+              isDesignationsActive
+                ? "bg-white/15 text-white font-bold"
+                : "text-cyan-50/80 hover:bg-[#0092B6]/30 hover:text-white"
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>Manage Designations</span>
+          </Link>
+
+          {/* Companies Link */}
+          <Link
+            href="/companies"
+            className={`flex items-center gap-3 px-6 py-3 transition-colors text-xs ${
+              isCompaniesActive
+                ? "bg-white/15 text-white font-bold"
+                : "text-cyan-50/80 hover:bg-[#0092B6]/30 hover:text-white"
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            <span>Manage Companies</span>
+          </Link>
 
         </nav>
       </aside>
 
       {/* 2. MAIN WORKSPACE */}
-      <div className="flex-grow flex flex-col overflow-hidden">
+      <div className="flex-grow flex flex-col overflow-hidden bg-[#f7f8f9]">
         
         {/* TOP BAR / NAVBAR (Hello Thomas, Search bar, English, Jhon Smith online) */}
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 shadow-sm">
+        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 shadow-sm flex-shrink-0">
           {/* Left: Greeting */}
           <div className="flex items-center gap-4">
-            <button className="p-1.5 hover:bg-slate-150 rounded-lg transition-colors text-slate-500">
+            <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-500">
               <Menu className="w-5 h-5" />
             </button>
             <span className="font-bold text-slate-800 text-lg flex items-center gap-1.5">
@@ -229,7 +270,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
                   const val = e.target.value;
                   setSelectedCompanyId(val ? parseInt(val, 10) : null);
                 }}
-                className="appearance-none bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-600 px-3 py-1.5 pr-8 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00A2CA] cursor-pointer min-w-[150px]"
+                className="appearance-none bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-650 px-3.5 py-1.5 pr-8 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00A2CA] cursor-pointer min-w-[160px]"
               >
                 <option value="">-- Switch Company --</option>
                 {companies.map((c) => (
@@ -263,17 +304,17 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
             </button>
 
             {/* Fullscreen Grid Icon */}
-            <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors">
+            <button className="p-1.5 text-slate-450 hover:text-slate-700 rounded-full hover:bg-slate-50 transition-colors">
               <Grid className="w-4 h-4" />
             </button>
 
             {/* Message/Email Icon */}
-            <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors">
+            <button className="p-1.5 text-slate-450 hover:text-slate-700 rounded-full hover:bg-slate-50 transition-colors">
               <Mail className="w-4 h-4" />
             </button>
 
             {/* Notification bell */}
-            <button className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors relative">
+            <button className="p-1.5 text-slate-450 hover:text-slate-700 rounded-full hover:bg-slate-50 transition-colors relative">
               <Bell className="w-4 h-4" />
               <span className="absolute top-1 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
             </button>
@@ -302,9 +343,9 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               </button>
 
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg border border-slate-150 shadow-lg py-1 text-xs text-slate-700 z-50">
-                  <Link href="/employees" className="block px-4 py-2 hover:bg-slate-50">Profile</Link>
-                  <button className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-red-650">
+                <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg border border-slate-150 shadow-lg py-1 text-xs text-slate-700 z-50 animate-fade-in">
+                  <Link href="/employees" className="block px-4 py-2 hover:bg-slate-50 font-medium">Profile</Link>
+                  <button className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-red-650 font-medium">
                     <LogOut className="w-3.5 h-3.5" /> Logout
                   </button>
                 </div>
@@ -318,8 +359,8 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
         <main className="flex-grow overflow-y-auto p-6 bg-[#f7f8f9]">
           
           {/* Breadcrumbs matching screens (e.g. Home > Employee) */}
-          <div className="mb-4">
-            <div className="flex items-center gap-1.5 text-xs text-[#00A2CA] font-semibold">
+          <div className="mb-6">
+            <div className="flex items-center gap-1.5 text-xs text-[#00A2CA] font-bold">
               <span>Home</span>
               <span className="text-slate-400 font-normal">&gt;</span>
               <span className="text-slate-500 font-medium">
@@ -327,21 +368,6 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               </span>
             </div>
           </div>
-
-          {/* Scoped Company Banner alert */}
-          {selectedCompany && (
-            <div className="mb-4 bg-cyan-50 border border-cyan-100 rounded-xl px-4 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#00A2CA] animate-pulse"></span>
-                <span className="text-xs font-semibold text-cyan-850">
-                  Scoped Active Records: {selectedCompany.name}
-                </span>
-              </div>
-              <span className="text-[10px] text-cyan-600 font-medium font-mono uppercase bg-cyan-100/50 px-2 py-0.5 rounded border border-cyan-150">
-                PostgreSQL database
-              </span>
-            </div>
-          )}
 
           {/* Children views */}
           {children}
