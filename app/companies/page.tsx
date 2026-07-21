@@ -596,14 +596,14 @@ export default function CompaniesPage() {
                     setIsDeleteConfirmOpen(false);
                     setDeleteTargetId(null);
                   }}
-                  className="border border-slate-200 bg-white text-slate-650 hover:bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={confirmDeleteAction}
-                  className="bg-red-650 hover:bg-red-750 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
                 >
                   Confirm Delete
                 </button>

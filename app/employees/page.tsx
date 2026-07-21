@@ -164,12 +164,12 @@ export default function EmployeesPage() {
       setError(null);
       
       let url = `/api/employees?companyId=${selectedCompanyId}`;
-      if (appliedDesig) url += `&designationId=${appliedDesig}`;
+      if (employeeDesigInput) url += `&designationId=${employeeDesigInput}`;
       
       // Fuzzy search on name or code
       let searchParams: string[] = [];
-      if (appliedName) searchParams.push(appliedName);
-      if (appliedId) searchParams.push(appliedId);
+      if (employeeNameInput) searchParams.push(employeeNameInput);
+      if (employeeIdInput) searchParams.push(employeeIdInput);
       
       if (searchParams.length > 0) {
         url += `&search=${encodeURIComponent(searchParams.join(" "))}`;
@@ -203,13 +203,11 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchEmployees();
     fetchDesignationsList();
-  }, [selectedCompanyId, appliedName, appliedId, appliedDesig]);
+  }, [selectedCompanyId, employeeNameInput, employeeIdInput, employeeDesigInput]);
 
-  // Apply filters on button click
+  // Apply filters manually on button click (fallback/optional refresh)
   const handleApplyFilters = () => {
-    setAppliedName(employeeNameInput);
-    setAppliedId(employeeIdInput);
-    setAppliedDesig(employeeDesigInput);
+    fetchEmployees();
   };
 
   // Clear notifications
@@ -1041,14 +1039,14 @@ export default function EmployeesPage() {
                     setIsDeleteConfirmOpen(false);
                     setDeleteTargetId(null);
                   }}
-                  className="border border-slate-200 bg-white text-slate-650 hover:bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+                  className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={confirmDeleteAction}
-                  className="bg-red-650 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
                 >
                   Confirm Delete
                 </button>
