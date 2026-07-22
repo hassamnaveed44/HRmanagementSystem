@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useCompany } from "@/context/CompanyContext";
+import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/lib/api-client";
 import {
   Eye,
   Pencil,
@@ -58,6 +60,7 @@ interface Salary {
  */
 export default function SalariesPage() {
   const { selectedCompanyId, selectedCompany, loading: contextLoading } = useCompany();
+  const { canManage } = useAuth();
   const [salaries, setSalaries] = useState<Salary[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -111,7 +114,7 @@ export default function SalariesPage() {
       if (filterYear) url += `&year=${filterYear}`;
       if (filterStatus) url += `&paymentStatus=${filterStatus}`;
 
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error("Failed to load salaries");
       const data = await res.json();
       setSalaries(data);
@@ -126,7 +129,7 @@ export default function SalariesPage() {
   const fetchEmployeesList = async () => {
     if (!selectedCompanyId) return;
     try {
-      const res = await fetch(`/api/employees?companyId=${selectedCompanyId}`);
+      const res = await apiFetch(`/api/employees?companyId=${selectedCompanyId}`);
       if (res.ok) {
         const data = await res.json();
         setEmployees(data);
@@ -163,6 +166,7 @@ export default function SalariesPage() {
 
   // Open modal for creating a salary slip
   const handleOpenCreate = () => {
+    fetchEmployeesList();
     setFormType("create");
     setSelectedSalary(null);
     setEmployeeId("");
@@ -178,6 +182,7 @@ export default function SalariesPage() {
 
   // Open modal for editing a salary slip
   const handleOpenEdit = (sal: Salary) => {
+    fetchEmployeesList();
     setFormType("edit");
     setSelectedSalary(sal);
     setEmployeeId(sal.employeeId.toString());
@@ -218,13 +223,13 @@ export default function SalariesPage() {
     try {
       let res;
       if (formType === "create") {
-        res = await fetch("/api/salaries", {
+        res = await apiFetch("/api/salaries", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`/api/salaries/${selectedSalary?.id}`, {
+        res = await apiFetch(`/api/salaries/${selectedSalary?.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -264,7 +269,7 @@ export default function SalariesPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`/api/salaries/${deleteTargetId}`, {
+      const res = await apiFetch(`/api/salaries/${deleteTargetId}`, {
         method: "DELETE",
       });
 
@@ -383,12 +388,14 @@ export default function SalariesPage() {
               </div>
 
               {/* Log Salary CTA */}
-              <button
-                onClick={handleOpenCreate}
-                className="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm self-start md:self-auto"
-              >
-                <Plus className="w-4 h-4" /> Log Salary Slip
-              </button>
+              {canManage && (
+                <button
+                  onClick={handleOpenCreate}
+                  className="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm self-start md:self-auto"
+                >
+                  <Plus className="w-4 h-4" /> Log Salary Slip
+                </button>
+              )}
             </div>
 
             {/* Salaries table card */}
@@ -436,13 +443,12 @@ export default function SalariesPage() {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span
-                              className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-                                sal.paymentStatus === "PAID"
-                                  ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
-                                  : sal.paymentStatus === "PENDING"
+                              className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${sal.paymentStatus === "PAID"
+                                ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
+                                : sal.paymentStatus === "PENDING"
                                   ? "bg-amber-50 text-amber-800 border border-amber-100"
                                   : "bg-slate-100 text-slate-650 border border-slate-200"
-                              }`}
+                                }`}
                             >
                               {sal.paymentStatus}
                             </span>
@@ -455,20 +461,24 @@ export default function SalariesPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleOpenEdit(sal)}
-                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
-                              title="Edit Slip"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSalary(sal.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
-                              title="Delete Slip"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canManage && (
+                              <button
+                                onClick={() => handleOpenEdit(sal)}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
+                                title="Edit Slip"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canManage && (
+                              <button
+                                onClick={() => handleDeleteSalary(sal.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
+                                title="Delete Slip"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -500,7 +510,7 @@ export default function SalariesPage() {
               {/* Form Body */}
               <form onSubmit={handleFormSubmit}>
                 <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                  
+
                   {/* Select Employee (Locked on edit) */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -520,6 +530,14 @@ export default function SalariesPage() {
                         </option>
                       ))}
                     </select>
+                    {employees.length === 0 && (
+                      <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded-lg mt-1 font-medium">
+                        ⚠️ No employees registered for this company yet.{" "}
+                        <a href="/employees" className="underline font-bold text-[#00A2CA]">
+                          Register an Employee first
+                        </a>
+                      </p>
+                    )}
                   </div>
 
                   {/* Month and Year (Locked on edit) */}
@@ -640,10 +658,10 @@ export default function SalariesPage() {
 
                     {/* LIVE CALCULATION BOX */}
                     <div className="bg-cyan-50 border border-cyan-150 p-3 rounded-lg text-right">
-                      <div className="text-[10px] text-cyan-600 font-bold uppercase tracking-wider">
+                      <div className="text-[10px] text-gray-900 font-bold uppercase tracking-wider">
                         Net Salary (Live Calc)
                       </div>
-                      <div className="text-xl font-extrabold text-cyan-850 mt-0.5">
+                      <div className="text-xl font-extrabold text-gray-900 mt-0.5">
                         ${calculateNetSalary().toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </div>
                     </div>
@@ -676,7 +694,7 @@ export default function SalariesPage() {
         {isDetailOpen && detailSalary && (
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-100 overflow-hidden animate-zoom-in">
-              
+
               {/* Header */}
               <div className="flex justify-between items-center bg-gradient-to-r from-cyan-800 to-teal-900 px-6 py-5 text-white">
                 <div className="flex items-center gap-3">
@@ -700,7 +718,7 @@ export default function SalariesPage() {
 
               {/* Slip details body */}
               <div className="p-6 space-y-4">
-                
+
                 {/* Employee card */}
                 <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="w-10 h-10 rounded-full bg-cyan-700 text-white flex items-center justify-center font-bold text-sm">
@@ -741,7 +759,7 @@ export default function SalariesPage() {
                       -${detailSalary.deductions.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  
+
                   {/* Highlighted Net Salary */}
                   <div className="flex justify-between items-center text-base pt-4 border-t border-dashed border-slate-200 font-extrabold">
                     <span className="text-slate-800">Net Paid Salary</span>
@@ -806,7 +824,7 @@ export default function SalariesPage() {
                 <div className="w-12 h-12 bg-red-50 text-red-650 rounded-full flex items-center justify-center mx-auto">
                   <AlertTriangle className="w-6 h-6 text-red-650" />
                 </div>
-                
+
                 {/* Text Messages */}
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-800 text-lg">Confirm Delete</h3>
@@ -815,7 +833,7 @@ export default function SalariesPage() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Footer CTA Controls */}
               <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
                 <button

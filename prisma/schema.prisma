@@ -13,6 +13,13 @@ datasource db {
 // ENUMS
 // -------------------------------------------------------------
 
+/// User Authorization Roles
+enum Role {
+  ADMIN
+  HR
+  EMPLOYEE
+}
+
 /// Employee status options
 enum EmployeeStatus {
   ACTIVE
@@ -41,6 +48,27 @@ enum ProjectStatus {
 // MODELS
 // -------------------------------------------------------------
 
+/// User Model (Authentication & Authorization)
+model User {
+  id           Int       @id @default(autoincrement()) // Primary Key
+  name         String                                  // User full name
+  email        String    @unique                       // Unique login email address
+  passwordHash String                                  // Encrypted password hash (bcryptjs)
+  role         Role      @default(HR)                  // Authorization role (ADMIN, HR, EMPLOYEE)
+  isActive     Boolean   @default(true)                // Account active/disabled status
+  
+  // Optional link to Company (HR and Employee belong to a company; ADMIN can manage all)
+  companyId    Int?
+  company      Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // Optional link to an Employee profile
+  employeeId   Int?      @unique
+  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  
+  createdAt    DateTime  @default(now())               // Audit timestamp: Creation
+  updatedAt    DateTime  @updatedAt                   // Audit timestamp: Last update
+}
+
 /// Company Model
 /// HR users manage multiple companies independently
 model Company {
@@ -54,11 +82,12 @@ model Company {
   createdAt DateTime @default(now())               // Audit timestamp: Creation
   updatedAt DateTime @updatedAt                   // Audit timestamp: Last update
 
-  // Relations: One company has many designations, employees, salaries, and projects
+  // Relations: One company has many designations, employees, salaries, projects, and users
   designations Designation[]
   employees    Employee[]
   projects     Project[]
   salaries     Salary[]
+  users        User[]
 }
 
 /// Designation Model
@@ -103,9 +132,10 @@ model Employee {
   createdAt     DateTime       @default(now())              // Audit timestamp: Creation
   updatedAt     DateTime       @updatedAt                   // Audit timestamp: Last update
 
-  // Relations: An employee has many salary logs and projects
+  // Relations: An employee has many salary logs, projects, and an optional User account
   salaries     Salary[]
   projects     ProjectEmployee[]
+  user         User?
 }
 
 /// Salary Model

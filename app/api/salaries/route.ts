@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PaymentStatus } from "@prisma/client";
+import { authenticateRequest, authenticateWithRole } from "@/lib/auth-guard";
 
 /**
  * GET /api/salaries
@@ -9,6 +10,9 @@ import { PaymentStatus } from "@prisma/client";
  */
 export async function GET(req: NextRequest) {
   try {
+    const auth = await authenticateRequest(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { searchParams } = new URL(req.url);
     const companyIdParam = searchParams.get("companyId");
     const employeeIdParam = searchParams.get("employeeId");
@@ -33,8 +37,16 @@ export async function GET(req: NextRequest) {
       companyId: companyId,
     };
 
-    // Employee Filter
-    if (employeeIdParam) {
+    // Role Restriction for EMPLOYEE: Standard employees can only view their own salary slips
+    if (auth.user?.role === "EMPLOYEE") {
+      if (auth.user.employeeId) {
+        whereClause.employeeId = auth.user.employeeId;
+      } else {
+        // If employee user is not linked to an employee record yet, return empty list
+        return NextResponse.json([]);
+      }
+    } else if (employeeIdParam) {
+      // Admin / HR Employee Filter
       const employeeId = parseInt(employeeIdParam, 10);
       if (!isNaN(employeeId)) {
         whereClause.employeeId = employeeId;
@@ -105,6 +117,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN", "HR"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await req.json();
     const {
       employeeId,

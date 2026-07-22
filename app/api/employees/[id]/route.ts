@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { EmployeeStatus } from "@prisma/client";
+import { authenticateRequest, authenticateWithRole } from "@/lib/auth-guard";
 
 /**
  * GET /api/employees/[id]
@@ -12,6 +13,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateRequest(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const employeeId = parseInt(id, 10);
 
@@ -71,6 +75,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN", "HR"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const employeeId = parseInt(id, 10);
 
@@ -213,6 +220,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN", "HR"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const employeeId = parseInt(id, 10);
 

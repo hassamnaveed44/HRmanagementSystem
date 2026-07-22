@@ -1,15 +1,17 @@
-import { EmployeeStatus, PaymentStatus, ProjectStatus } from "@prisma/client";
+import { EmployeeStatus, PaymentStatus, ProjectStatus, Role } from "@prisma/client";
 import { prisma } from "../lib/db";
+import bcrypt from "bcryptjs";
 
 /**
  * Main seeding function that inserts initial data into the PostgreSQL database.
- * Establishes companies, designations, employees, managers, projects, assignments, and salary logs.
+ * Establishes companies, designations, employees, managers, projects, assignments, salary logs, and users.
  */
 async function main() {
   console.log("Starting database seeding...");
 
   // 1. Clean existing records in reverse dependency order to avoid foreign key constraints errors
   console.log("Cleaning existing database records...");
+  await prisma.user.deleteMany({});
   await prisma.projectEmployee.deleteMany({});
   await prisma.salary.deleteMany({});
   await prisma.project.deleteMany({});
@@ -434,6 +436,61 @@ async function main() {
     ],
   });
   console.log("Created 10 monthly salary records.");
+
+  // 8. Create Authenticated User Accounts
+  console.log("Creating default user accounts...");
+  const adminPasswordHash = await bcrypt.hash("admin123", 10);
+  const hrPasswordHash = await bcrypt.hash("hr123456", 10);
+  const empPasswordHash = await bcrypt.hash("emp123456", 10);
+
+  // System Administrator (Global access)
+  await prisma.user.create({
+    data: {
+      name: "System Administrator",
+      email: "admin@hr.com",
+      passwordHash: adminPasswordHash,
+      role: Role.ADMIN,
+      isActive: true,
+    },
+  });
+
+  // TechCorp HR Manager
+  await prisma.user.create({
+    data: {
+      name: "TechCorp HR Manager",
+      email: "hr@techcorp.com",
+      passwordHash: hrPasswordHash,
+      role: Role.HR,
+      companyId: company1.id,
+      isActive: true,
+    },
+  });
+
+  // HealthGroup HR Manager
+  await prisma.user.create({
+    data: {
+      name: "HealthGroup HR Manager",
+      email: "hr@healthgroup.org",
+      passwordHash: hrPasswordHash,
+      role: Role.HR,
+      companyId: company2.id,
+      isActive: true,
+    },
+  });
+
+  // Employee User Account
+  await prisma.user.create({
+    data: {
+      name: "John Doe",
+      email: "john.doe@techcorp.com",
+      passwordHash: empPasswordHash,
+      role: Role.EMPLOYEE,
+      companyId: company1.id,
+      employeeId: empTechManager.id,
+      isActive: true,
+    },
+  });
+  console.log("Created 4 authenticated User accounts (Admin, HR TechCorp, HR HealthGroup, Employee).");
 
   console.log("Seeding complete! Database successfully populated.");
 }

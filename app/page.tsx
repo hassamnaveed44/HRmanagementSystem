@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useCompany } from "@/context/CompanyContext";
+import { apiFetch } from "@/lib/api-client";
 import {
   Building2,
   Users,
@@ -66,11 +67,11 @@ export default function DashboardHome() {
 
         // Fetch data concurrently from individual endpoints to compile statistics
         const [empRes, activeEmpRes, desigRes, projRes, salRes] = await Promise.all([
-          fetch(`/api/employees?companyId=${selectedCompanyId}`),
-          fetch(`/api/employees?companyId=${selectedCompanyId}&status=ACTIVE`),
-          fetch(`/api/designations?companyId=${selectedCompanyId}`),
-          fetch(`/api/projects?companyId=${selectedCompanyId}&status=IN_PROGRESS`),
-          fetch(`/api/salaries?companyId=${selectedCompanyId}&paymentStatus=PENDING`),
+          apiFetch(`/api/employees?companyId=${selectedCompanyId}`),
+          apiFetch(`/api/employees?companyId=${selectedCompanyId}&status=ACTIVE`),
+          apiFetch(`/api/designations?companyId=${selectedCompanyId}`),
+          apiFetch(`/api/projects?companyId=${selectedCompanyId}&status=IN_PROGRESS`),
+          apiFetch(`/api/salaries?companyId=${selectedCompanyId}&paymentStatus=PENDING`),
         ]);
 
         const [employees, activeEmployees, designations, activeProjects, pendingSalaries] =

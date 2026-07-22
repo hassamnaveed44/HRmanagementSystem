@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { authenticateRequest, authenticateWithRole } from "@/lib/auth-guard";
 
 /**
  * POST /api/projects/[id]/assign
@@ -10,6 +11,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN", "HR"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const projectId = parseInt(id, 10);
 
@@ -108,6 +112,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN", "HR"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const projectId = parseInt(id, 10);
 

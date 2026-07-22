@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useCompany } from "@/context/CompanyContext";
+import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/lib/api-client";
 import {
   Eye,
   Pencil,
@@ -59,6 +61,7 @@ interface Project {
  */
 export default function ProjectsPage() {
   const { selectedCompanyId, selectedCompany, loading: contextLoading } = useCompany();
+  const { canManage } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -108,7 +111,7 @@ export default function ProjectsPage() {
       let url = `/api/projects?companyId=${selectedCompanyId}`;
       if (filterStatus) url += `&status=${filterStatus}`;
 
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error("Failed to load projects");
       const data = await res.json();
       setProjects(data);
@@ -129,7 +132,7 @@ export default function ProjectsPage() {
   const fetchEmployeesList = async () => {
     if (!selectedCompanyId) return;
     try {
-      const res = await fetch(`/api/employees?companyId=${selectedCompanyId}`);
+      const res = await apiFetch(`/api/employees?companyId=${selectedCompanyId}`);
       if (res.ok) {
         const data = await res.json();
         setEmployees(data);
@@ -181,6 +184,7 @@ export default function ProjectsPage() {
 
   // Open details and team assignment overlay (Eye Icon)
   const handleOpenDetail = (proj: Project) => {
+    fetchEmployeesList();
     setDetailProject(proj);
     setAssignEmployeeId("");
     setAssignRole("");
@@ -206,13 +210,13 @@ export default function ProjectsPage() {
     try {
       let res;
       if (formType === "create") {
-        res = await fetch("/api/projects", {
+        res = await apiFetch("/api/projects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`/api/projects/${selectedProj?.id}`, {
+        res = await apiFetch(`/api/projects/${selectedProj?.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -252,7 +256,7 @@ export default function ProjectsPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`/api/projects/${deleteTargetId}`, {
+      const res = await apiFetch(`/api/projects/${deleteTargetId}`, {
         method: "DELETE",
       });
 
@@ -283,7 +287,7 @@ export default function ProjectsPage() {
     };
 
     try {
-      const res = await fetch(`/api/projects/${detailProject.id}/assign`, {
+      const res = await apiFetch(`/api/projects/${detailProject.id}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -311,7 +315,7 @@ export default function ProjectsPage() {
     setAssignmentError(null);
 
     try {
-      const res = await fetch(`/api/projects/${detailProject.id}/assign?employeeId=${employeeId}`, {
+      const res = await apiFetch(`/api/projects/${detailProject.id}/assign?employeeId=${employeeId}`, {
         method: "DELETE",
       });
 
@@ -375,12 +379,14 @@ export default function ProjectsPage() {
               </div>
 
               {/* Add Project CTA */}
-              <button
-                onClick={handleOpenCreate}
-                className="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm self-start md:self-auto"
-              >
-                <Plus className="w-4 h-4" /> Add Project
-              </button>
+              {canManage && (
+                <button
+                  onClick={handleOpenCreate}
+                  className="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm self-start md:self-auto"
+                >
+                  <Plus className="w-4 h-4" /> Add Project
+                </button>
+              )}
             </div>
 
             {/* Projects list cards layout */}
@@ -398,22 +404,21 @@ export default function ProjectsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {projects.map((proj) => (
                   <div key={proj.id} className="bg-white rounded-xl border border-slate-150 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
-                    
+
                     {/* Card Body */}
                     <div className="p-6 space-y-4">
                       {/* Name and status badge */}
                       <div className="flex justify-between items-start gap-4">
                         <h4 className="font-extrabold text-slate-800 text-base">{proj.name}</h4>
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            proj.status === "COMPLETED"
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${proj.status === "COMPLETED"
                               ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
                               : proj.status === "IN_PROGRESS"
-                              ? "bg-cyan-50 text-cyan-800 border border-cyan-100"
-                              : proj.status === "PLANNED"
-                              ? "bg-blue-50 text-blue-800 border border-blue-100"
-                              : "bg-amber-50 text-amber-800 border border-amber-100"
-                          }`}
+                                ? "bg-cyan-50 text-cyan-800 border border-cyan-100"
+                                : proj.status === "PLANNED"
+                                  ? "bg-blue-50 text-blue-800 border border-blue-100"
+                                  : "bg-amber-50 text-amber-800 border border-amber-100"
+                            }`}
                         >
                           {proj.status.replace("_", " ")}
                         </span>
@@ -450,20 +455,24 @@ export default function ProjectsPage() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleOpenEdit(proj)}
-                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
-                          title="Edit details"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProject(proj.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
-                          title="Delete Project"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canManage && (
+                          <button
+                            onClick={() => handleOpenEdit(proj)}
+                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
+                            title="Edit details"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canManage && (
+                          <button
+                            onClick={() => handleDeleteProject(proj.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
+                            title="Delete Project"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -593,7 +602,7 @@ export default function ProjectsPage() {
         {isDetailOpen && detailProject && (
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl border border-slate-100 overflow-hidden animate-zoom-in grid grid-cols-1 md:grid-cols-2">
-              
+
               {/* LEFT COLUMN: PROJECT DETAILS */}
               <div className="flex flex-col justify-between border-r border-slate-100">
                 <div>
@@ -637,13 +646,12 @@ export default function ProjectsPage() {
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Status</span>
                       <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          detailProject.status === "COMPLETED"
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${detailProject.status === "COMPLETED"
                             ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
                             : detailProject.status === "IN_PROGRESS"
-                            ? "bg-cyan-50 text-cyan-800 border border-cyan-100"
-                            : "bg-blue-50 text-blue-800 border border-blue-100"
-                        }`}
+                              ? "bg-cyan-50 text-cyan-800 border border-cyan-100"
+                              : "bg-blue-50 text-blue-800 border border-blue-100"
+                          }`}
                       >
                         {detailProject.status.replace("_", " ")}
                       </span>
@@ -655,7 +663,7 @@ export default function ProjectsPage() {
                 <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-start">
                   <button
                     onClick={() => setIsDetailOpen(false)}
-                    className="border border-slate-200 bg-white hover:bg-slate-100 text-slate-650 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                    className="border border-slate-200 bg-white hover:bg-slate-100 text-gray-900 px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
                   >
                     Close Panel
                   </button>
@@ -679,46 +687,48 @@ export default function ProjectsPage() {
                     </div>
                   )}
 
-                  {/* Allocation Add Form */}
-                  <form onSubmit={handleAssignEmployee} className="space-y-3 p-3 bg-white border border-slate-150 rounded-xl">
-                    <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assign Member</h5>
-                    
-                    {/* Choose employee */}
-                    <select
-                      required
-                      value={assignEmployeeId}
-                      onChange={(e) => setAssignEmployeeId(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-800 cursor-pointer"
-                    >
-                      <option value="">-- Choose Employee --</option>
-                      {/* Filter out employees who are already assigned to this project */}
-                      {employees
-                        .filter((emp) => !detailProject.employees.some((pe) => pe.employee.id === emp.id))
-                        .map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.firstName} {emp.lastName} ({emp.employeeCode})
-                          </option>
-                        ))}
-                    </select>
+                  {/* Allocation Add Form - Hidden for EMPLOYEE role */}
+                  {canManage && (
+                    <form onSubmit={handleAssignEmployee} className="space-y-3 p-3 bg-white border border-slate-150 rounded-xl">
+                      <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Assign Member</h5>
 
-                    {/* Role specification */}
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
+                      {/* Choose employee */}
+                      <select
                         required
-                        value={assignRole}
-                        onChange={(e) => setAssignRole(e.target.value)}
-                        placeholder="e.g. Backend Lead"
-                        className="flex-grow bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-800"
-                      />
-                      <button
-                        type="submit"
-                        className="bg-cyan-700 hover:bg-cyan-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                        value={assignEmployeeId}
+                        onChange={(e) => setAssignEmployeeId(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-800 cursor-pointer"
                       >
-                        <UserPlus className="w-3.5 h-3.5" /> Assign
-                      </button>
-                    </div>
-                  </form>
+                        <option value="">-- Choose Employee --</option>
+                        {/* Filter out employees who are already assigned to this project */}
+                        {employees
+                          .filter((emp) => !detailProject.employees.some((pe) => pe.employee.id === emp.id))
+                          .map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName} ({emp.employeeCode})
+                            </option>
+                          ))}
+                      </select>
+
+                      {/* Role specification */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          value={assignRole}
+                          onChange={(e) => setAssignRole(e.target.value)}
+                          placeholder="e.g. Backend Lead"
+                          className="flex-grow bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-800"
+                        />
+                        <button
+                          type="submit"
+                          className="bg-cyan-700 hover:bg-cyan-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" /> Assign
+                        </button>
+                      </div>
+                    </form>
+                  )}
 
                   {/* List of currently assigned team members */}
                   <div className="space-y-2">
@@ -770,7 +780,7 @@ export default function ProjectsPage() {
                 <div className="w-12 h-12 bg-red-50 text-red-650 rounded-full flex items-center justify-center mx-auto">
                   <AlertTriangle className="w-6 h-6 text-red-650" />
                 </div>
-                
+
                 {/* Text Messages */}
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-800 text-lg">Confirm Delete</h3>
@@ -779,7 +789,7 @@ export default function ProjectsPage() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Footer CTA Controls */}
               <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
                 <button

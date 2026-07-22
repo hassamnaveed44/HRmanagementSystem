@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useCompany } from "@/context/CompanyContext";
+import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/lib/api-client";
 import {
   Eye,
   Pencil,
@@ -79,7 +81,8 @@ interface DetailedProfile extends Employee {
  * - Pagination component bottom right
  */
 export default function EmployeesPage() {
-  const { selectedCompanyId, selectedCompany, loading: contextLoading } = useCompany();
+  const { companies, selectedCompanyId, selectedCompany, loading: contextLoading } = useCompany();
+  const { canManage } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -162,20 +165,20 @@ export default function EmployeesPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       let url = `/api/employees?companyId=${selectedCompanyId}`;
       if (employeeDesigInput) url += `&designationId=${employeeDesigInput}`;
-      
+
       // Fuzzy search on name or code
       let searchParams: string[] = [];
       if (employeeNameInput) searchParams.push(employeeNameInput);
       if (employeeIdInput) searchParams.push(employeeIdInput);
-      
+
       if (searchParams.length > 0) {
         url += `&search=${encodeURIComponent(searchParams.join(" "))}`;
       }
 
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error("Failed to load employees");
       const data = await res.json();
       setEmployees(data);
@@ -190,7 +193,7 @@ export default function EmployeesPage() {
   const fetchDesignationsList = async () => {
     if (!selectedCompanyId) return;
     try {
-      const res = await fetch(`/api/designations?companyId=${selectedCompanyId}`);
+      const res = await apiFetch(`/api/designations?companyId=${selectedCompanyId}`);
       if (res.ok) {
         const data = await res.json();
         setDesignations(data);
@@ -223,6 +226,7 @@ export default function EmployeesPage() {
 
   // Open modal for creating a new employee
   const handleOpenCreate = () => {
+    fetchDesignationsList();
     setFormType("create");
     setSelectedEmp(null);
     setEmployeeCode("");
@@ -240,6 +244,7 @@ export default function EmployeesPage() {
 
   // Open modal for editing employee
   const handleOpenEdit = (emp: Employee) => {
+    fetchDesignationsList();
     setFormType("edit");
     setSelectedEmp(emp);
     setEmployeeCode(emp.employeeCode);
@@ -260,9 +265,9 @@ export default function EmployeesPage() {
     setIsDetailOpen(true);
     setLoadingProfile(true);
     setProfileDetail(null);
-    
+
     try {
-      const res = await fetch(`/api/employees/${emp.id}`);
+      const res = await apiFetch(`/api/employees/${emp.id}`);
       if (res.ok) {
         const data = await res.json();
         setProfileDetail(data);
@@ -297,13 +302,13 @@ export default function EmployeesPage() {
     try {
       let res;
       if (formType === "create") {
-        res = await fetch("/api/employees", {
+        res = await apiFetch("/api/employees", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`/api/employees/${selectedEmp?.id}`, {
+        res = await apiFetch(`/api/employees/${selectedEmp?.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -337,7 +342,7 @@ export default function EmployeesPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`/api/employees/${deleteTargetId}`, {
+      const res = await apiFetch(`/api/employees/${deleteTargetId}`, {
         method: "DELETE",
       });
 
@@ -365,7 +370,7 @@ export default function EmployeesPage() {
   return (
     <DashboardShell pageTitle="Employee Directory" breadcrumbs={breadcrumbs}>
       <div className="space-y-6">
-        
+
         {/* Alerts for user feedback */}
         {success && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-4 text-xs font-semibold animate-fade-in shadow-sm">
@@ -390,7 +395,7 @@ export default function EmployeesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            
+
             {/* 1. FILTER CONTROLS ROW: Styled exactly like the screenshot */}
             <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col xl:flex-row items-center gap-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-grow w-full xl:w-auto">
@@ -443,19 +448,21 @@ export default function EmployeesPage() {
                   Filters
                 </button>
 
-                {/* Add Employee button (#00A2CA) */}
-                <button
-                  onClick={handleOpenCreate}
-                  className="bg-[#00A2CA] hover:bg-[#0092B6] text-white px-5 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm whitespace-nowrap"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add Employee
-                </button>
+                {/* Add Employee button (#00A2CA) - Hidden for standard EMPLOYEE role */}
+                {canManage && (
+                  <button
+                    onClick={handleOpenCreate}
+                    className="bg-[#00A2CA] hover:bg-[#0092B6] text-white px-5 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Employee
+                  </button>
+                )}
               </div>
             </div>
 
             {/* 2. EMPLOYEE DIRECTORY TABLE CARD: Styled matching screens */}
             <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col justify-between min-h-[400px]">
-              
+
               <div className="flex-grow">
                 {loading ? (
                   <div className="p-16 flex flex-col items-center justify-center text-slate-400 gap-3">
@@ -534,24 +541,28 @@ export default function EmployeesPage() {
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
-                              
-                              {/* Edit icon in light teal box */}
-                              <button
-                                onClick={() => handleOpenEdit(emp)}
-                                className="p-2 bg-[#e2f9f3] text-[#00b5ad] hover:bg-[#d2f9f3] rounded-lg transition-colors inline-flex items-center"
-                                title="Edit Profile"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
 
-                              {/* Trash icon in light red box */}
-                              <button
-                                onClick={() => handleDeleteEmployee(emp.id)}
-                                className="p-2 bg-[#ffeae6] text-[#ef4444] hover:bg-[#ffd6d0] rounded-lg transition-colors inline-flex items-center"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {/* Edit icon in light teal box - Hidden for EMPLOYEE role */}
+                              {canManage && (
+                                <button
+                                  onClick={() => handleOpenEdit(emp)}
+                                  className="p-2 bg-[#e2f9f3] text-[#00b5ad] hover:bg-[#d2f9f3] rounded-lg transition-colors inline-flex items-center"
+                                  title="Edit Profile"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {/* Trash icon in light red box - Hidden for EMPLOYEE role */}
+                              {canManage && (
+                                <button
+                                  onClick={() => handleDeleteEmployee(emp.id)}
+                                  className="p-2 bg-[#ffeae6] text-[#ef4444] hover:bg-[#ffd6d0] rounded-lg transition-colors inline-flex items-center"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -610,14 +621,14 @@ export default function EmployeesPage() {
               <form onSubmit={handleFormSubmit}>
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto bg-slate-50/50">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
+
                     {/* CARD 1: PERSONAL DETAIL */}
                     <div className="bg-white p-6 rounded-xl border border-slate-150 shadow-sm space-y-4">
                       <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
                         <Users className="w-4.5 h-4.5 text-[#00A2CA]" />
                         <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Personal Details</h4>
                       </div>
-                      
+
                       {/* Name Grid */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -694,7 +705,7 @@ export default function EmployeesPage() {
 
                     {/* RIGHT COLUMN CARD: COMPANY DETAIL */}
                     <div className="space-y-6">
-                      
+
                       {/* CARD 2: COMPANY DETAIL */}
                       <div className="bg-white p-6 rounded-xl border border-slate-150 shadow-sm space-y-4">
                         <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
@@ -749,6 +760,14 @@ export default function EmployeesPage() {
                               </option>
                             ))}
                           </select>
+                          {designations.length === 0 && (
+                            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded-lg mt-1 font-medium">
+                              ⚠️ No designations exist for this company yet.{" "}
+                              <a href="/designations" className="underline font-bold text-[#00A2CA]">
+                                Add a Designation first
+                              </a>
+                            </p>
+                          )}
                         </div>
 
                         {/* Status Select */}
@@ -825,7 +844,7 @@ export default function EmployeesPage() {
         {isDetailOpen && (
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl border border-slate-100 overflow-hidden animate-zoom-in">
-              
+
               {/* Header profile banner */}
               <div className="bg-gradient-to-r from-cyan-800 to-teal-900 px-6 py-6 text-white flex justify-between items-start">
                 {loadingProfile ? (
@@ -861,7 +880,7 @@ export default function EmployeesPage() {
                 ) : (
                   <div className="text-sm">Profile loading failed.</div>
                 )}
-                
+
                 <button
                   onClick={() => setIsDetailOpen(false)}
                   className="p-1.5 text-white/70 hover:text-white rounded-full hover:bg-white/10 transition-colors"
@@ -873,13 +892,13 @@ export default function EmployeesPage() {
               {/* Profile Details Body */}
               {profileDetail && (
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto bg-slate-50/30">
-                  
+
                   {/* Left Column: Personal info */}
                   <div className="space-y-4 md:col-span-1 border-r border-slate-100 pr-2">
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 pb-2">
                       Personal Info
                     </h4>
-                    
+
                     <div className="space-y-3">
                       <div className="flex gap-2.5 text-xs text-slate-700">
                         <Mail className="w-4 h-4 text-slate-450 flex-shrink-0" />
@@ -975,13 +994,12 @@ export default function EmployeesPage() {
                                 Month: {sal.month}/{sal.year}
                               </div>
                               <span
-                                className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold mt-1 ${
-                                  sal.paymentStatus === "PAID"
+                                className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold mt-1 ${sal.paymentStatus === "PAID"
                                     ? "bg-emerald-50 text-emerald-800"
                                     : sal.paymentStatus === "PENDING"
-                                    ? "bg-amber-50 text-amber-800"
-                                    : "bg-red-50 text-red-800"
-                                }`}
+                                      ? "bg-amber-50 text-amber-800"
+                                      : "bg-red-50 text-red-800"
+                                  }`}
                               >
                                 {sal.paymentStatus}
                               </span>
@@ -1021,7 +1039,7 @@ export default function EmployeesPage() {
                 <div className="w-12 h-12 bg-red-50 text-red-650 rounded-full flex items-center justify-center mx-auto">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                 </div>
-                
+
                 {/* Text Messages */}
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-800 text-lg">Confirm Delete</h3>
@@ -1030,7 +1048,7 @@ export default function EmployeesPage() {
                   </p>
                 </div>
               </div>
-              
+
               {/* Footer CTA Controls */}
               <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
                 <button

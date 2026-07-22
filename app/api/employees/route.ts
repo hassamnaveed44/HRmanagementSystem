@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { EmployeeStatus } from "@prisma/client";
+import { authenticateRequest, authenticateWithRole } from "@/lib/auth-guard";
 
 /**
  * GET /api/employees
@@ -9,6 +10,9 @@ import { EmployeeStatus } from "@prisma/client";
  */
 export async function GET(req: NextRequest) {
   try {
+    const auth = await authenticateRequest(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { searchParams } = new URL(req.url);
     const companyIdParam = searchParams.get("companyId");
     const designationIdParam = searchParams.get("designationId");
@@ -97,6 +101,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN", "HR"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await req.json();
     const {
       employeeCode,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { authenticateRequest, authenticateWithRole } from "@/lib/auth-guard";
 
 /**
  * GET /api/companies/[id]
@@ -10,6 +11,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateRequest(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const companyId = parseInt(id, 10);
 
@@ -44,6 +48,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const companyId = parseInt(id, 10);
 
@@ -94,6 +101,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
     const companyId = parseInt(id, 10);
 

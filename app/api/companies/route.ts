@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { authenticateRequest, authenticateWithRole } from "@/lib/auth-guard";
 
 /**
  * GET /api/companies
- * Fetch all companies.
+ * Fetch all companies. Requires JWT authentication.
  */
 export async function GET(req: NextRequest) {
   try {
+    const auth = await authenticateRequest(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
     // Retrieve all companies sorted by name
     const companies = await prisma.company.findMany({
       orderBy: { name: "asc" },
@@ -23,10 +27,13 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/companies
- * Create a new company.
+ * Create a new company. Requires ADMIN role.
  */
 export async function POST(req: NextRequest) {
   try {
+    const auth = await authenticateWithRole(req, ["ADMIN"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
     const body = await req.json();
     const { name, email, phone, address, website, status } = body;
 

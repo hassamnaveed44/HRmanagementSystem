@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useCompany } from "@/context/CompanyContext";
+import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/lib/api-client";
 import {
   Eye,
   Pencil,
@@ -41,6 +43,7 @@ interface EmployeeSummary {
  */
 export default function DesignationsPage() {
   const { selectedCompanyId, selectedCompany, loading: contextLoading } = useCompany();
+  const { canManage } = useAuth();
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +79,7 @@ export default function DesignationsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/designations?companyId=${selectedCompanyId}`);
+      const res = await apiFetch(`/api/designations?companyId=${selectedCompanyId}`);
       if (!res.ok) throw new Error("Failed to load designations");
       const data = await res.json();
       setDesignations(data);
@@ -128,7 +131,7 @@ export default function DesignationsPage() {
     
     try {
       // Query employees filtered by company and this specific designation
-      const res = await fetch(`/api/employees?companyId=${selectedCompanyId}&designationId=${desig.id}`);
+      const res = await apiFetch(`/api/employees?companyId=${selectedCompanyId}&designationId=${desig.id}`);
       if (res.ok) {
         const data = await res.json();
         setAssignedEmployees(data);
@@ -155,13 +158,13 @@ export default function DesignationsPage() {
     try {
       let res;
       if (formType === "create") {
-        res = await fetch("/api/designations", {
+        res = await apiFetch("/api/designations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`/api/designations/${selectedDesig?.id}`, {
+        res = await apiFetch(`/api/designations/${selectedDesig?.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, description }),
@@ -195,7 +198,7 @@ export default function DesignationsPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`/api/designations/${deleteTargetId}`, {
+      const res = await apiFetch(`/api/designations/${deleteTargetId}`, {
         method: "DELETE",
       });
 
@@ -247,12 +250,14 @@ export default function DesignationsPage() {
               <div className="text-sm text-slate-500 font-medium">
                 Showing roles for <span className="font-bold text-slate-700">{selectedCompany?.name}</span>
               </div>
-              <button
-                onClick={handleOpenCreate}
-                className="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <Plus className="w-4 h-4" /> Add Designation
-              </button>
+              {canManage && (
+                <button
+                  onClick={handleOpenCreate}
+                  className="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
+                >
+                  <Plus className="w-4 h-4" /> Add Designation
+                </button>
+              )}
             </div>
 
             {/* Designations list card */}
@@ -298,20 +303,24 @@ export default function DesignationsPage() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleOpenEdit(desig)}
-                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
-                              title="Edit"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDesignation(desig.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canManage && (
+                              <button
+                                onClick={() => handleOpenEdit(desig)}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
+                                title="Edit"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canManage && (
+                              <button
+                                onClick={() => handleDeleteDesignation(desig.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition-colors inline-flex items-center"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}

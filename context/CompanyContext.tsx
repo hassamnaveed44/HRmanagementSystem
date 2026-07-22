@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api-client";
+import { useAuth } from "@/context/AuthContext";
 
 // Structure definition for Company records
 interface Company {
@@ -35,17 +37,18 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyIdState] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const { user, token, loading: authLoading } = useAuth();
 
   // Fetch all companies from the API
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/companies");
+      const res = await apiFetch("/api/companies");
       if (res.ok) {
         const data = await res.json();
         setCompanies(data);
         
-        // Initialize selection from localStorage or default to the first active company
+        // Initialize selection from localStorage or user's assigned companyId
         const savedId = localStorage.getItem("selectedCompanyId");
         if (savedId) {
           const parsed = parseInt(savedId, 10);
@@ -54,6 +57,14 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setLoading(false);
             return;
           }
+        }
+
+        // Check if current user has an assigned companyId
+        if (user?.companyId && data.some((c: Company) => c.id === user.companyId)) {
+          setSelectedCompanyIdState(user.companyId);
+          localStorage.setItem("selectedCompanyId", user.companyId.toString());
+          setLoading(false);
+          return;
         }
 
         // Default to first active company if no valid saved ID
@@ -73,10 +84,12 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Run company list fetching on mount
+  // Re-run company list fetching when auth state initializes or changes
   useEffect(() => {
-    fetchCompanies();
-  }, []);
+    if (!authLoading) {
+      fetchCompanies();
+    }
+  }, [user, token, authLoading]);
 
   // Update selected ID and save to local storage
   const setSelectedCompanyId = (id: number | null) => {

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCompany } from "@/context/CompanyContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -21,7 +22,7 @@ import {
   Clock,
   MessageSquare,
   ShieldAlert,
-  User,
+  User as UserIcon,
   LogOut,
   ArrowRight,
   Settings,
@@ -47,7 +48,8 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
   breadcrumbs,
 }) => {
   const pathname = usePathname();
-  const { companies, selectedCompanyId, setSelectedCompanyId, selectedCompany } = useCompany();
+  const { companies, selectedCompanyId, setSelectedCompanyId, selectedCompany, refreshCompanies } = useCompany();
+  const { user, logout } = useAuth();
   
   // Navigation states
   const [employeeOpen, setEmployeeOpen] = useState(true);
@@ -268,13 +270,16 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
             </button>
             
             <span className="font-bold text-slate-800 text-sm md:text-lg flex items-center gap-1">
-              Hello Thomas <span className="inline-block transform origin-bottom hover:animate-wave cursor-default">👋</span>
+              Hello {user?.name ? user.name.split(" ")[0] : "Thomas"} <span className="inline-block transform origin-bottom hover:animate-wave cursor-default">👋</span>
             </span>
 
             {/* Scope / Switch Company Indicator */}
             <div className="ml-2 md:ml-4 relative flex-shrink-0">
               <select
                 value={selectedCompanyId || ""}
+                onFocus={() => {
+                  if (companies.length === 0) refreshCompanies();
+                }}
                 onChange={(e) => {
                   const val = e.target.value;
                   setSelectedCompanyId(val ? parseInt(val, 10) : null);
@@ -318,33 +323,45 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               <span className="absolute top-1 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span>
             </button>
 
-            {/* Profile Avatar (Jhon Smith, Online) */}
+            {/* Profile Avatar & User Info */}
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-slate-100 hover:opacity-90"
               >
                 <div className="relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150"
-                    alt="Jhon Smith"
-                    className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border border-slate-200"
-                  />
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#00A2CA] text-white flex items-center justify-center text-xs font-bold border border-slate-200">
+                    {user?.name ? user.name.substring(0, 2).toUpperCase() : "JS"}
+                  </div>
                   <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white"></span>
                 </div>
                 <div className="hidden lg:block text-left">
-                  <div className="text-xs font-bold text-slate-700">Jhon Smith</div>
+                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <span>{user?.name || "Jhon Smith"}</span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-[#00A2CA]/10 text-[#00A2CA] border border-[#00A2CA]/20">
+                      {user?.role || "HR"}
+                    </span>
+                  </div>
                   <div className="text-[9px] text-slate-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> online
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> authenticated
                   </div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg border border-slate-150 shadow-lg py-1 text-xs text-slate-700 z-50 animate-fade-in">
-                  <Link href="/employees" className="block px-4 py-2 hover:bg-slate-50 font-medium">Profile</Link>
-                  <button className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-red-600 font-medium">
+                <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl border border-slate-150 shadow-xl py-1.5 text-xs text-slate-700 z-50 animate-fade-in">
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <div className="font-bold text-slate-800 truncate">{user?.name}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{user?.email}</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      logout();
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-red-600 font-bold transition-colors cursor-pointer"
+                  >
                     <LogOut className="w-3.5 h-3.5" /> Logout
                   </button>
                 </div>
