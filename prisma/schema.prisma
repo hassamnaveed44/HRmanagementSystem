@@ -65,6 +65,8 @@ model User {
   employeeId   Int?      @unique
   employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   
+  refreshToken String?                                 // Active Refresh Token for session tracking & revocation
+  
   createdAt    DateTime  @default(now())               // Audit timestamp: Creation
   updatedAt    DateTime  @updatedAt                   // Audit timestamp: Last update
 }

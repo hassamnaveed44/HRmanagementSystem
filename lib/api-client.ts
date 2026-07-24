@@ -49,10 +49,13 @@ export function getStoredUser(): any | null {
   }
 }
 
+let isRefreshing = false;
+
 /**
  * Reusable API Fetcher
- * Automatically appends `Authorization: Bearer <jwt-token>` header
- * and intercepts 401 Unauthorized responses.
+ * Automatically appends `Authorization: Bearer <jwt-token>` header,
+ * performs silent background token refresh on 401 Unauthorized,
+ * and retries the request seamlessly.
  */
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = getStoredToken();
@@ -68,19 +71,53 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(url, {
+  let response = await fetch(url, {
     ...options,
     headers,
   });
 
-  // Intercept 401 Unauthorized responses
-  if (response.status === 401) {
-    // Only intercept if we are not on public auth pages (/login or /signup)
-    if (typeof window !== "undefined") {
-      const currentPath = window.location.pathname;
-      if (currentPath !== "/login" && currentPath !== "/signup") {
-        clearStoredAuth();
-        window.location.href = "/login?expired=true";
+  // Intercept 401 Unauthorized responses and attempt silent refresh
+  if (response.status === 401 && !url.includes("/api/auth/refresh") && !url.includes("/api/auth/login")) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshRes = await fetch("/api/auth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          const newToken = refreshData.accessToken || refreshData.token;
+          if (newToken && refreshData.user) {
+            setStoredAuth(newToken, refreshData.user);
+
+            // Retry original request with new Access Token
+            const retryHeaders = new Headers(options.headers || {});
+            retryHeaders.set("Authorization", `Bearer ${newToken}`);
+            if (options.body && !retryHeaders.has("Content-Type")) {
+              retryHeaders.set("Content-Type", "application/json");
+            }
+
+            response = await fetch(url, {
+              ...options,
+              headers: retryHeaders,
+            });
+          }
+        } else {
+          // Refresh token expired or revoked
+          if (typeof window !== "undefined") {
+            const currentPath = window.location.pathname;
+            if (currentPath !== "/login" && currentPath !== "/signup") {
+              clearStoredAuth();
+              window.location.href = "/login?expired=true";
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Token refresh failed:", err);
+      } finally {
+        isRefreshing = false;
       }
     }
   }

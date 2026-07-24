@@ -17,21 +17,44 @@ export async function GET(req: NextRequest) {
     const statusParam = searchParams.get("status");
 
     // Scoping check: companyId is required
-    if (!companyIdParam) {
-      return NextResponse.json(
-        { error: "companyId query parameter is required to scope project results." },
-        { status: 400 }
-      );
-    }
+    const whereClause: any = {};
 
-    const companyId = parseInt(companyIdParam, 10);
-    if (isNaN(companyId)) {
-      return NextResponse.json({ error: "Invalid companyId" }, { status: 400 });
-    }
+    // Role Restriction for EMPLOYEE: Standard employees can only view projects assigned to them
+    if (auth.user?.role === "EMPLOYEE") {
+      let targetEmployeeId = auth.user.employeeId;
 
-    const whereClause: any = {
-      companyId: companyId,
-    };
+      if (!targetEmployeeId) {
+        const matchingEmployee = await prisma.employee.findUnique({
+          where: { email: auth.user.email },
+        });
+        if (matchingEmployee) {
+          targetEmployeeId = matchingEmployee.id;
+        }
+      }
+
+      if (!targetEmployeeId) {
+        return NextResponse.json([]);
+      }
+
+      whereClause.employees = {
+        some: {
+          employeeId: targetEmployeeId,
+        },
+      };
+    } else {
+      // ADMIN and HR Scoping Logic
+      if (companyIdParam) {
+        const companyId = parseInt(companyIdParam, 10);
+        if (!isNaN(companyId)) {
+          whereClause.companyId = companyId;
+        }
+      } else if (auth.user?.role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "companyId query parameter is required to scope project results." },
+          { status: 400 }
+        );
+      }
+    }
 
     // Status Filter
     if (statusParam) {

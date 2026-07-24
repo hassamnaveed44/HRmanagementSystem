@@ -104,124 +104,131 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
           <span>Dashboard</span>
         </Link>
 
-        {/* Employee */}
-        <div>
-          <button
-            onClick={() => setEmployeeOpen(!employeeOpen)}
-            className={`w-full flex items-center justify-between px-6 py-3.5 transition-colors text-sm ${
-              isEmployeeSectionActive
-                ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
-                : "text-white hover:bg-[#0092B6]/40"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Users className="w-4.5 h-4.5" />
-              <span>Employee</span>
-            </div>
-            {employeeOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-
-          {employeeOpen && (
-            <div className="bg-[#0092B6]/25 py-1.5 space-y-1">
-              <Link
-                href="/employees"
-                onClick={() => setIsMobileOpen(false)}
-                className={`flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs transition-colors ${
-                  pathname === "/employees"
-                    ? "text-white font-bold"
-                    : "text-cyan-50 hover:text-white"
+        {/* Management Links (Hidden for EMPLOYEE role users) */}
+        {user?.role !== "EMPLOYEE" && (
+          <>
+            {/* Employee */}
+            <div>
+              <button
+                onClick={() => setEmployeeOpen(!employeeOpen)}
+                className={`w-full flex items-center justify-between px-6 py-3.5 transition-colors text-sm ${
+                  isEmployeeSectionActive
+                    ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                    : "text-white hover:bg-[#0092B6]/40"
                 }`}
               >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span>Employee</span>
-              </Link>
-              <button className="w-full flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs text-cyan-50/70 hover:text-white transition-colors text-left">
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span>Documents</span>
+                <div className="flex items-center gap-3">
+                  <Users className="w-4.5 h-4.5" />
+                  <span>Employee</span>
+                </div>
+                {employeeOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
-              <button className="w-full flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs text-cyan-50/70 hover:text-white transition-colors text-left">
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span>Assets</span>
-              </button>
-            </div>
-          )}
-        </div>
 
-        {/* Salary */}
-        <div>
-          <button
-            onClick={() => setSalaryOpen(!salaryOpen)}
-            className={`w-full flex items-center justify-between px-6 py-3.5 transition-colors text-sm ${
-              isSalarySectionActive
-                ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
-                : "text-white hover:bg-[#0092B6]/40"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Banknote className="w-4.5 h-4.5" />
-              <span>Salary</span>
+              {employeeOpen && (
+                <div className="bg-[#0092B6]/25 py-1.5 space-y-1">
+                  <Link
+                    href="/employees"
+                    onClick={() => setIsMobileOpen(false)}
+                    className={`flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs transition-colors ${
+                      pathname === "/employees"
+                        ? "text-white font-bold"
+                        : "text-cyan-50 hover:text-white"
+                    }`}
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Employee</span>
+                  </Link>
+                  <button className="w-full flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs text-cyan-50/70 hover:text-white transition-colors text-left">
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Documents</span>
+                  </button>
+                  <button className="w-full flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs text-cyan-50/70 hover:text-white transition-colors text-left">
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Assets</span>
+                  </button>
+                </div>
+              )}
             </div>
-            {salaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-          {salaryOpen && (
-            <div className="bg-[#0092B6]/25 py-1.5 space-y-1">
-              <Link
-                href="/salaries"
-                onClick={() => setIsMobileOpen(false)}
-                className={`flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs transition-colors ${
-                  pathname === "/salaries"
-                    ? "text-white font-bold"
-                    : "text-cyan-50 hover:text-white"
+
+            {/* Salary */}
+            <div>
+              <button
+                onClick={() => setSalaryOpen(!salaryOpen)}
+                className={`w-full flex items-center justify-between px-6 py-3.5 transition-colors text-sm ${
+                  isSalarySectionActive
+                    ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                    : "text-white hover:bg-[#0092B6]/40"
                 }`}
               >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span>Salary Sheets</span>
-              </Link>
+                <div className="flex items-center gap-3">
+                  <Banknote className="w-4.5 h-4.5" />
+                  <span>Salary</span>
+                </div>
+                {salaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {salaryOpen && (
+                <div className="bg-[#0092B6]/25 py-1.5 space-y-1">
+                  <Link
+                    href="/salaries"
+                    onClick={() => setIsMobileOpen(false)}
+                    className={`flex items-center gap-3 pl-12 pr-6 py-2.5 text-xs transition-colors ${
+                      pathname === "/salaries"
+                        ? "text-white font-bold"
+                        : "text-cyan-50 hover:text-white"
+                    }`}
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Salary Sheets</span>
+                  </Link>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Projects */}
-        <Link
-          href="/projects"
-          onClick={() => setIsMobileOpen(false)}
-          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
-            isProjectsActive
-              ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
-              : "text-white hover:bg-[#0092B6]/40"
-          }`}
-        >
-          <FolderKanban className="w-4.5 h-4.5" />
-          <span>Projects</span>
-        </Link>
+            {/* Projects */}
+            <Link
+              href="/projects"
+              onClick={() => setIsMobileOpen(false)}
+              className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
+                isProjectsActive
+                  ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                  : "text-white hover:bg-[#0092B6]/40"
+              }`}
+            >
+              <FolderKanban className="w-4.5 h-4.5" />
+              <span>Projects</span>
+            </Link>
 
-        {/* Role (pointing to designations) */}
-        <Link
-          href="/designations"
-          onClick={() => setIsMobileOpen(false)}
-          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
-            isDesignationsActive
-              ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
-              : "text-white hover:bg-[#0092B6]/40"
-          }`}
-        >
-          <ShieldAlert className="w-4.5 h-4.5" />
-          <span>Role</span>
-        </Link>
+            {/* Role (pointing to designations) */}
+            <Link
+              href="/designations"
+              onClick={() => setIsMobileOpen(false)}
+              className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
+                isDesignationsActive
+                  ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                  : "text-white hover:bg-[#0092B6]/40"
+              }`}
+            >
+              <ShieldAlert className="w-4.5 h-4.5" />
+              <span>Role</span>
+            </Link>
 
-        {/* Companies */}
-        <Link
-          href="/companies"
-          onClick={() => setIsMobileOpen(false)}
-          className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
-            isCompaniesActive
-              ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
-              : "text-white hover:bg-[#0092B6]/40"
-          }`}
-        >
-          <Building className="w-4.5 h-4.5" />
-          <span>Companies</span>
-        </Link>
+            {/* Companies - Visible only for ADMIN */}
+            {user?.role === "ADMIN" && (
+              <Link
+                href="/companies"
+                onClick={() => setIsMobileOpen(false)}
+                className={`flex items-center gap-3 px-6 py-3.5 transition-colors text-sm ${
+                  isCompaniesActive
+                    ? "bg-white text-[#00A2CA] font-bold border-l-4 border-[#0092B6] pl-5"
+                    : "text-white hover:bg-[#0092B6]/40"
+                }`}
+              >
+                <Building className="w-4.5 h-4.5" />
+                <span>Companies</span>
+              </Link>
+            )}
+          </>
+        )}
 
       </nav>
     </>
@@ -273,28 +280,30 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               Hello {user?.name ? user.name.split(" ")[0] : "Thomas"} <span className="inline-block transform origin-bottom hover:animate-wave cursor-default">👋</span>
             </span>
 
-            {/* Scope / Switch Company Indicator */}
-            <div className="ml-2 md:ml-4 relative flex-shrink-0">
-              <select
-                value={selectedCompanyId || ""}
-                onFocus={() => {
-                  if (companies.length === 0) refreshCompanies();
-                }}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSelectedCompanyId(val ? parseInt(val, 10) : null);
-                }}
-                className="appearance-none bg-slate-50 border border-slate-200 text-[10px] md:text-xs font-semibold text-slate-600 px-2.5 py-1.5 pr-8 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00A2CA] cursor-pointer max-w-[120px] md:max-w-[200px] truncate"
-              >
-                <option value="">-- Switch Company --</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            {/* Scope / Switch Company Indicator (Hidden for EMPLOYEE role) */}
+            {user?.role !== "EMPLOYEE" && (
+              <div className="ml-2 md:ml-4 relative flex-shrink-0">
+                <select
+                  value={selectedCompanyId || ""}
+                  onFocus={() => {
+                    if (companies.length === 0) refreshCompanies();
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedCompanyId(val ? parseInt(val, 10) : null);
+                  }}
+                  className="appearance-none bg-slate-50 border border-slate-200 text-[10px] md:text-xs font-semibold text-slate-600 px-2.5 py-1.5 pr-8 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00A2CA] cursor-pointer max-w-[120px] md:max-w-[200px] truncate"
+                >
+                  <option value="">-- Switch Company --</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            )}
           </div>
 
           {/* Right Side: Controls & Profile */}

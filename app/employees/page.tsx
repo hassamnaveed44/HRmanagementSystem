@@ -824,7 +824,7 @@ export default function EmployeesPage() {
                   <button
                     type="button"
                     onClick={() => setIsFormOpen(false)}
-                    className="border border-slate-200 bg-white text-slate-650 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                    className="border border-slate-200 bg-white text-gray-900 hover:bg-slate-100 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
                   >
                     Cancel
                   </button>
@@ -995,10 +995,10 @@ export default function EmployeesPage() {
                               </div>
                               <span
                                 className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold mt-1 ${sal.paymentStatus === "PAID"
-                                    ? "bg-emerald-50 text-emerald-800"
-                                    : sal.paymentStatus === "PENDING"
-                                      ? "bg-amber-50 text-amber-800"
-                                      : "bg-red-50 text-red-800"
+                                  ? "bg-emerald-50 text-emerald-800"
+                                  : sal.paymentStatus === "PENDING"
+                                    ? "bg-amber-50 text-amber-800"
+                                    : "bg-red-50 text-red-800"
                                   }`}
                               >
                                 {sal.paymentStatus}

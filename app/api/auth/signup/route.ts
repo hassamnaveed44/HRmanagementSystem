@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { hashPassword } from "@/lib/auth";
+import {
+  hashPassword,
+  generateAccessToken,
+  generateRefreshToken,
+} from "@/lib/auth";
 import { Role } from "@prisma/client";
 
 /**
@@ -95,19 +99,66 @@ export async function POST(req: NextRequest) {
         companyId: validCompanyId,
         isActive: true,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        companyId: true,
-        createdAt: true,
-      },
     });
 
-    // 8. Return created user response (never returning passwordHash)
-    return NextResponse.json(newUser, { status: 201 });
+    // 8. Generate Access and Refresh Tokens
+    const accessToken = generateAccessToken({
+      userId: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      name: newUser.name,
+      companyId: newUser.companyId,
+      employeeId: newUser.employeeId,
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+    });
+
+    // 9. Persist Refresh Token in DB
+    await prisma.user.update({
+      where: { id: newUser.id },
+      data: { refreshToken: refreshToken },
+    });
+
+    // 10. Build response
+    const response = NextResponse.json(
+      {
+        accessToken,
+        token: accessToken,
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          companyId: newUser.companyId,
+          employeeId: newUser.employeeId,
+        },
+      },
+      { status: 201 }
+    );
+
+    // Set httpOnly cookie for Refresh Token
+    response.cookies.set("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 604800,
+    });
+
+    // Set access token cookie for Next.js proxy
+    response.cookies.set("jwt_token", accessToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 604800,
+    });
+
+    return response;
   } catch (error) {
     console.error("POST /api/auth/signup error:", error);
     return NextResponse.json(

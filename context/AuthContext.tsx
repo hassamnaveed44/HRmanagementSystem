@@ -15,6 +15,7 @@ export interface User {
   email: string;
   role: "ADMIN" | "HR" | "EMPLOYEE";
   companyId?: number | null;
+  employeeId?: number | null;
   isActive?: boolean;
 }
 

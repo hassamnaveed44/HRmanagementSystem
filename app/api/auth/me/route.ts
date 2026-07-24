@@ -41,8 +41,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Auto-link employeeId and companyId if missing by matching Employee email
+    let linkedEmployeeId = user.employeeId;
+    let linkedCompanyId = user.companyId;
+
+    if (!linkedEmployeeId || !linkedCompanyId) {
+      const matchingEmployee = await prisma.employee.findUnique({
+        where: { email: user.email },
+      });
+      if (matchingEmployee) {
+        linkedEmployeeId = matchingEmployee.id;
+        linkedCompanyId = matchingEmployee.companyId;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            employeeId: matchingEmployee.id,
+            companyId: matchingEmployee.companyId,
+          },
+        });
+      }
+    }
+
     // 3. Return safe user profile
-    return NextResponse.json(user);
+    return NextResponse.json({
+      ...user,
+      employeeId: linkedEmployeeId,
+      companyId: linkedCompanyId,
+    });
   } catch (error) {
     console.error("GET /api/auth/me error:", error);
     return NextResponse.json(

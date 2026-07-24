@@ -20,36 +20,45 @@ export async function GET(req: NextRequest) {
     const yearParam = searchParams.get("year");
     const statusParam = searchParams.get("paymentStatus");
 
-    // Scoping check: companyId is required
-    if (!companyIdParam) {
-      return NextResponse.json(
-        { error: "companyId query parameter is required to scope salary records." },
-        { status: 400 }
-      );
-    }
-
-    const companyId = parseInt(companyIdParam, 10);
-    if (isNaN(companyId)) {
-      return NextResponse.json({ error: "Invalid companyId" }, { status: 400 });
-    }
-
-    const whereClause: any = {
-      companyId: companyId,
-    };
+    const whereClause: any = {};
 
     // Role Restriction for EMPLOYEE: Standard employees can only view their own salary slips
     if (auth.user?.role === "EMPLOYEE") {
-      if (auth.user.employeeId) {
-        whereClause.employeeId = auth.user.employeeId;
-      } else {
-        // If employee user is not linked to an employee record yet, return empty list
+      let targetEmployeeId = auth.user.employeeId;
+
+      if (!targetEmployeeId) {
+        const matchingEmployee = await prisma.employee.findUnique({
+          where: { email: auth.user.email },
+        });
+        if (matchingEmployee) {
+          targetEmployeeId = matchingEmployee.id;
+        }
+      }
+
+      if (!targetEmployeeId) {
         return NextResponse.json([]);
       }
-    } else if (employeeIdParam) {
-      // Admin / HR Employee Filter
-      const employeeId = parseInt(employeeIdParam, 10);
-      if (!isNaN(employeeId)) {
-        whereClause.employeeId = employeeId;
+
+      whereClause.employeeId = targetEmployeeId;
+    } else {
+      // ADMIN and HR Scoping Logic
+      if (companyIdParam) {
+        const companyId = parseInt(companyIdParam, 10);
+        if (!isNaN(companyId)) {
+          whereClause.companyId = companyId;
+        }
+      } else if (auth.user?.role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "companyId query parameter is required to scope salary records." },
+          { status: 400 }
+        );
+      }
+
+      if (employeeIdParam) {
+        const employeeId = parseInt(employeeIdParam, 10);
+        if (!isNaN(employeeId)) {
+          whereClause.employeeId = employeeId;
+        }
       }
     }
 
