@@ -159,10 +159,13 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("POST /api/auth/signup error:", error);
     return NextResponse.json(
-      { error: "Failed to process signup request." },
+      {
+        error: "Failed to process signup request.",
+        details: error?.message || String(error),
+      },
       { status: 500 }
     );
   }
