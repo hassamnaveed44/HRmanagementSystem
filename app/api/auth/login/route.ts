@@ -124,10 +124,13 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("POST /api/auth/login error:", error);
     return NextResponse.json(
-      { error: "Failed to process login request." },
+      {
+        error: "Failed to process login request.",
+        details: error?.message || String(error),
+      },
       { status: 500 }
     );
   }
